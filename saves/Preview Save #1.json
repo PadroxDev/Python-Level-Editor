@@ -1,47 +1,24 @@
 {
       "name": "Save #1",
-      "tiles": {
-            "7,3": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
+      "tiles": {},
+      "off-grid": [
+            {
+                  "sprite_surf": "graphics/placeholders/capybara.png",
+                  "position": "256.5,80.5"
             },
-            "8,3": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
+            {
+                  "sprite_surf": "graphics/placeholders/capybara.png",
+                  "position": "153.5,173.5"
             },
-            "8,4": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
+            {
+                  "sprite_surf": "graphics/placeholders/capybara.png",
+                  "position": "231.5,171.5"
             },
-            "9,4": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
-            },
-            "10,4": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
-            },
-            "9,5": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
-            },
-            "8,5": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
-            },
-            "7,5": {
-                  "type": "sprite",
-                  "sprite_surf": "graphics/placeholders/nezuko.png",
-                  "tiling": 64
+            {
+                  "sprite_surf": "graphics/placeholders/capybara.png",
+                  "position": "156.5,85.5"
             }
-      },
+      ],
       "physics": [
             []
       ]

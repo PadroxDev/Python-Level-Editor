@@ -6,7 +6,6 @@ from pygame.key import get_pressed as key_pressed
 from pygame.mouse import get_pos as mouse_pos
 from pygame.image import load
 from settings import *
-from saving import SaveHandler
 
 from helpers import clamp
 
@@ -18,10 +17,6 @@ from random import randint
 from components.button import Button
 
 working_save = "Preview Save #1.json"
-
-save = SaveHandler()
-save.load()
-
 
 class Editor:
     def __init__(self)->None:
@@ -43,12 +38,14 @@ class Editor:
         self.tileSize = 64
         self.zoomFactor = 1
         
-        self.squares = {}
         self.tiles = {}
         
         self.physicsEnabled = False
         self.physicsPoints = [[]]
         self.physicsDrawIndex = 0
+        
+        self.offGridEnabled = False
+        self.offGridElements = []
         
         # Buttons
         self.saveButton = Button("graphics/buttons/save_button.png", (30,50))
@@ -60,11 +57,16 @@ class Editor:
         self.physicsEnabledButton = Button("graphics/buttons/physics_button.png", (30,200))
         self.physicsEnabledButton.bind(self.enablePhysics)
         
+        self.offGridButton = Button("graphics/buttons/off_grid_button.png", (30, 275))
+        self.offGridButton.bind(self.enableOffGrid)
+        
         self.loadSave(working_save)
     
     def enablePhysics(self):
         self.physicsEnabled = not self.physicsEnabled
-        print(self.physicsEnabled)
+        
+    def enableOffGrid(self):
+        self.offGridEnabled = not self.offGridEnabled
     
     ### Tiling ###
     # pos: the gridbased x and y coordinates
@@ -89,10 +91,12 @@ class Editor:
     
     def getCurrentCell(self)->tuple:
         return self.getCell(mouse_pos())
-    
 
     def tileWasDrawnOn(self, pos:tuple)->bool:
-        return pos in self.squares.keys() or pos in self.tiles.keys()
+        if self.offGridEnabled:
+            return False
+        else:
+            return pos in self.tiles.keys()
     
     # Input
     def eventLoop(self)->None:
@@ -139,14 +143,20 @@ class Editor:
             coords = key.split(',')
             coords[0], coords[1] = int(coords[0]), int(coords[1])
             
-            if value['type'] == 'sprite':
-                self.tiles[tuple(coords)] = {
-                    'surf': load(value['sprite_surf']).convert_alpha(),
-                    'path': value['sprite_surf'],
-                    'tiling': value['tiling']
-                }
-            else:
-                print("Unsupported tile data")
+            self.tiles[tuple(coords)] = {
+                'surf': load(value['sprite_surf']).convert_alpha(),
+                'path': value['sprite_surf'],
+                'tiling': value['tiling']
+            }
+            
+        for value in data['off-grid']:
+            position = value['position'].split(',')
+            position[0], position[1] = float(position[0]), float(position[1])
+            self.offGridElements.append({
+                'surf': load(value['sprite_surf']).convert_alpha(),
+                'path': value['sprite_surf'],
+                'position': tuple(position)
+            })
         
         self.physicsPoints = []
         for pointCloud in data['physics']:
@@ -163,16 +173,23 @@ class Editor:
             save = {
                 "name": name,
                 "tiles": {},
+                "off-grid": [],
                 "physics": []
             }
             
             for key, value in self.tiles.items():
                 coords = str(key[0]) + ',' + str(key[1])
                 save['tiles'][coords] = {
-                    'type': "sprite",
                     'sprite_surf': value['path'],
                     'tiling': value['tiling']
                 }
+            
+            for value in self.offGridElements:
+                position = str(value['position'][0]) + ',' + str(value['position'][1])
+                save['off-grid'].append({
+                    'sprite_surf': value['path'],
+                    'position': position
+                })
             
             for i in range(len(self.physicsPoints)):
                 pointCloud = []
@@ -206,12 +223,6 @@ class Editor:
         
         self.displaySurface.blit(self.supportLinesSurf, (0,0))
     
-    def drawSelectionClue(self)->None:
-        currentCell = self.getCurrentCell()
-        
-        # If the tile was drawn on, then return out
-        if self.tileWasDrawnOn(currentCell): return
-        
     def physicsDraw(self):
         if mouse_buttons()[0]:
             self.physicsPoints[self.physicsDrawIndex].append(mouse_pos())
@@ -219,50 +230,70 @@ class Editor:
             self.physicsDrawIndex += 1
             self.physicsPoints.append([])
     
-    def defaultDraw(self):
+    def gridDraw(self):
         if mouse_buttons()[0]:
             self.tiles[self.getCurrentCell()] = {
                 'surf': load('graphics/placeholders/nezuko.png').convert_alpha(),
                 'path': 'graphics/placeholders/nezuko.png',
                 'tiling': self.tileSize
             }
-        if mouse_buttons()[2]:
-            self.squares[self.getCurrentCell()] = {
-                'color': pygame.Color(randint(0, 255),randint(0, 255),randint(0, 255)),
-                'tiling': self.tileSize
-            }
-        if key_pressed()[pygame.K_c]: # WITH ???
+        if mouse_buttons()[2]: # Right click
             currentCell = self.getCurrentCell()
-            if currentCell in self.squares.keys():
-                del self.squares[currentCell]
             if currentCell in self.tiles.keys():
                 del self.tiles[currentCell]
     
+    def offGridDraw(self):
+        if mouse_buttons()[0]: 
+            loaded_surf = load('graphics/placeholders/capybara.png').convert_alpha()
+            rescaled = pygame.transform.scale(loaded_surf, vector(loaded_surf.get_size()) * self.zoomFactor)
+            self.offGridElements.append({
+                'surf': loaded_surf,
+                'path': 'graphics/placeholders/capybara.png',
+                'position': vector(mouse_pos()) - self.origin - vector(rescaled.get_size()) * 0.5
+            })
+        if mouse_buttons()[2]:
+            for i in range(len(self.offGridElements)):
+                value = self.offGridElements[i]
+                rect = pygame.Rect(value['position'], value['surf'].get_size())
+                if rect.collidepoint(mouse_pos()):
+                    del self.offGridElements[i]
+                    break
+                    
     def draw(self)->None:
-        if self.saveButton.rect.collidepoint(mouse_pos()) or self.loadButton.rect.collidepoint(mouse_pos()) or self.physicsEnabledButton.rect.collidepoint(mouse_pos()):
+        if self.saveButton.rect.collidepoint(mouse_pos()) or self.loadButton.rect.collidepoint(mouse_pos()) or self.physicsEnabledButton.rect.collidepoint(mouse_pos()) or self.offGridButton.rect.collidepoint(mouse_pos()):
             return
         
         if self.physicsEnabled:
             self.physicsDraw()
+        elif self.offGridEnabled:
+            self.offGridDraw()
         else:
-            self.defaultDraw()
+            self.gridDraw()
     
     def drawTiles(self)->None:
-        if self.physicsEnabled:
-            for pointCloud in self.physicsPoints:
-                if len(pointCloud) > 2:
-                    draw.polygon(self.displaySurface, pygame.Color(255,0,0), pointCloud)
+        for value in self.offGridElements:
+            pos = self.origin + vector(value['position']) * self.zoomFactor
+            surf = pygame.transform.scale(value['surf'], vector(value['surf'].get_size()) * self.zoomFactor)
+            self.displaySurface.blit(surf, pos)
         
-        for key, value in self.squares.items():
-            scaledTileSize = self.getScaledTileSize(value['tiling'])
-            rect = pygame.Rect((self.origin + vector(key) * scaledTileSize),(scaledTileSize,scaledTileSize))
-            draw.rect(self.displaySurface, value['color'], rect)
-            
         for key, value in self.tiles.items():
             scaledTileSize = self.getScaledTileSize(value['tiling'])
             pos = self.origin + vector(key) * scaledTileSize
             surf = pygame.transform.scale(value['surf'], (scaledTileSize,scaledTileSize))
             self.displaySurface.blit(surf, pos)
+            
+        if self.physicsEnabled:
+            physicsSurf = pygame.Surface(self.displaySurface.get_size())
+            physicsSurf.set_colorkey('green')
+            physicsSurf.fill('green')
+            for pointCloud in self.physicsPoints:
+                if len(pointCloud) > 2:
+                    offsetPointCloud = []
+                    for point in pointCloud:
+                        offsetPointCloud.append(self.origin + vector(point))
+                    draw.polygon(physicsSurf, pygame.Color(255,0,0), offsetPointCloud)
+            physicsSurf.set_alpha(155)
+            self.displaySurface.blit(physicsSurf, (0,0))
     
     def run(self, dt:float)->None:
         self.displaySurface.fill('white')
@@ -270,9 +301,9 @@ class Editor:
         # drawing
         self.eventLoop()
         self.drawTileBorders()
-        self.drawSelectionClue()
         self.drawTiles()
         self.saveButton.draw()
         self.loadButton.draw()
         self.physicsEnabledButton.draw()
+        self.offGridButton.draw()
         draw.circle(self.displaySurface, 'red', self.origin, 10)
