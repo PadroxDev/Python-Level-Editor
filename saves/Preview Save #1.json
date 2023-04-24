@@ -1,0 +1,48 @@
+{
+      "name": "Save #1",
+      "tiles": {
+            "7,3": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "8,3": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "8,4": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "9,4": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "10,4": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "9,5": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "8,5": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            },
+            "7,5": {
+                  "type": "sprite",
+                  "sprite_surf": "graphics/placeholders/nezuko.png",
+                  "tiling": 64
+            }
+      },
+      "physics": [
+            []
+      ]
+}
